@@ -66,6 +66,18 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 
 > **Reproduce benchmark:** Run `python experiments/benchmark_recall.py` to regenerate all metrics and the figure above.
 
+### 2. Computational Complexity & Context Scaling ($N = 128 \dots 8192$ tokens)
+
+| Sequence Length ($N$) | LinearHolographic $O(N)$ | StandardVector $O(N^2)$ | PhaseAttention $O(N^2)$ | TriangularPhase $O(N^2)$ | Linear Speedup vs Vector | Memory Reduction |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$N = 512$** | **0.36 ms** (0.28 MB) | 0.57 ms (8.0 MB) | 1.66 ms (8.0 MB) | 2.63 ms (8.0 MB) | **1.6x** | **28.5x** |
+| **$N = 2048$** | **0.87 ms** (1.12 MB) | 14.05 ms (128 MB) | 39.84 ms (128 MB) | 62.88 ms (128 MB) | **16.1x** | **113.8x** |
+| **$N = 8192$** | **3.03 ms** (4.50 MB) | 249.32 ms (2048 MB) | 615.80 ms (2048 MB) | 948.95 ms (2048 MB) | **82.3x** | **455.1x** |
+
+![Complexity and Memory Scaling](assets/complexity_scaling.png)
+
+> **Reproduce benchmark:** Run `python experiments/benchmark_scaling_latency.py` to regenerate the scaling curves.
+
 ---
 
 ## 🚀 Quickstart
