@@ -1,0 +1,61 @@
+{
+  "dataset": "Fashion-MNIST",
+  "input_resolution": [
+    28,
+    28
+  ],
+  "patch_size": [
+    4,
+    4
+  ],
+  "num_tokens": 49,
+  "classes": 10,
+  "sample_counts": {
+    "train": 6000,
+    "test": 1500
+  },
+  "results": [
+    {
+      "name": "LinearHolographic (O(N))",
+      "accuracy": 80.67,
+      "macro_f1": 79.3,
+      "params": 9138,
+      "train_time": 15.76
+    },
+    {
+      "name": "Triangular (Multiplier-Free)",
+      "accuracy": 80.33,
+      "macro_f1": 79.17,
+      "params": 9139,
+      "train_time": 16.59
+    },
+    {
+      "name": "PhaseAttention (U(1))",
+      "accuracy": 79.2,
+      "macro_f1": 78.6,
+      "params": 9139,
+      "train_time": 16.32
+    },
+    {
+      "name": "StandardVector Attention",
+      "accuracy": 81.07,
+      "macro_f1": 80.58,
+      "params": 10986,
+      "train_time": 15.18
+    },
+    {
+      "name": "cosFormer (Qin 2022)",
+      "accuracy": 80.33,
+      "macro_f1": 79.63,
+      "params": 10986,
+      "train_time": 16.46
+    },
+    {
+      "name": "Edge-CNN 2D (Baseline)",
+      "accuracy": 78.07,
+      "macro_f1": 76.61,
+      "params": 5226,
+      "train_time": 10.89
+    }
+  ]
+}

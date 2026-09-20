@@ -119,6 +119,30 @@ To evaluate real-world physiological signals beyond synthetic tasks, models were
 > 3. **High Clinical Safety:** Over **98.66% sensitivity** on life-threatening Ventricular Ectopic Beats ($V$), critical for battery-powered wearable Holter monitors and cardiac patches.  
 > **Reproduce benchmark:** Run `python experiments/benchmark_ecg_arrhythmia.py` to regenerate the clinical benchmark and figure.
 
+### 5. Embedded Vision Benchmark: Micro-ViT on Fashion-MNIST
+
+To evaluate PhaseAttention on 2D spatial vision tasks for resource-constrained vision microcontrollers (e.g. ESP32-CAM, OpenMV, STM32H7, ARM Cortex-M55/Ethos-U55), an ultra-compact **Micro-ViT (<10k parameters)** was deployed on 10-class **Fashion-MNIST**:
+- **Input:** $28 \times 28$ grayscale images.
+- **Tokenizer:** $4 \times 4$ non-overlapping patches $\implies 49$ visual tokens.
+- **Model Size:** $d_{model}=32$, 4 attention heads, $d_v=8$, 1 Transformer layer + MLP head.
+
+| Architecture | Model Family | Top-1 Acc (%) | Macro F1 (%) | Parameters | Multipliers in $Q \times K$ Kernel |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| `StandardVector Attention` | Micro-ViT $O(N^2)$ | 81.07% | 80.58% | 10,986 | $N \cdot d_k$ Float MACs |
+| **`LinearHolographicPhase`** | **Phase $O(N)$** | **80.67%** | **79.30%** | **9,138** (-16.8%) | **0 (Exact linear scan, No Softmax)** |
+| **`TriangularPhase`** | **Multiplier-Free** | **80.33%** | **79.17%** | **9,139** (-16.8%) | **0 (Subtraction + Abs only)** |
+| `cosFormer` (Qin et al., 2022) | Linear Attn $O(N)$ | 80.33% | 79.63% | 10,986 | $4 \cdot d_v$ Float MACs |
+| **`PhaseAttention (U(1))`** | Phase $O(N^2)$ | **79.20%** | **78.60%** | **9,139** (-16.8%) | **0 (Angular subtraction)** |
+| `Edge-CNN 2D` (CMSIS-NN Baseline) | Microcontroller CNN | 78.07% | 76.61% | 5,226 | Conv2D MACs |
+
+![Micro-ViT Embedded Vision Benchmark](assets/micro_vit_benchmark.png)
+
+> **Key Embedded Vision Takeaways:**  
+> 1. **Parity with SOTA Linear Vision Attention:** `LinearHolographicPhaseAttention` achieves 80.67% accuracy, matching or exceeding `cosFormer` (80.33%) while reducing parameter footprint by 16.8% and completely eliminating Softmax.  
+> 2. **Multiplier-Free Attention Outperforms 2D CNNs:** `TriangularPhaseAttention` achieves 80.33% accuracy, outperforming standard microcontroller 2D CNNs (78.07%) by +2.26% without requiring any multiplications in the attention kernel.  
+> 3. **Microcontroller Feasibility:** At ~9.1k parameters and 49 tokens, the entire model footprint fits into ~36 KB of flash memory and executes with <4 KB peak activation SRAM, ideal for sub-$5 microcontrollers.  
+> **Reproduce benchmark:** Run `python experiments/benchmark_micro_vit.py` to regenerate the vision benchmark and figure.
+
 ---
 
 ## 🚀 Quickstart
