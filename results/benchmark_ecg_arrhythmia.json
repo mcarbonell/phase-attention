@@ -1,0 +1,76 @@
+{
+  "dataset": "MIT-BIH Arrhythmia Database (PhysioNet)",
+  "lead": "MLII",
+  "sampling_rate_hz": 360,
+  "classes": [
+    "Normal (N)",
+    "Supraventricular (S)",
+    "Ventricular (V)"
+  ],
+  "sample_counts": {
+    "train": 1400,
+    "test": 400
+  },
+  "results": [
+    {
+      "accuracy": 93.75,
+      "macro_f1": 93.46158137138843,
+      "sens_normal": 97.5609756097561,
+      "sens_supraventricular": 84.375,
+      "sens_ventricular": 98.65771812080537,
+      "name": "LinearHolographic (O(N))",
+      "params": 5579,
+      "train_time": 1.12
+    },
+    {
+      "accuracy": 93.0,
+      "macro_f1": 92.75688236727198,
+      "sens_normal": 88.6178861788618,
+      "sens_supraventricular": 93.75,
+      "sens_ventricular": 95.9731543624161,
+      "name": "Triangular (Multiplier-Free)",
+      "params": 5580,
+      "train_time": 1.2
+    },
+    {
+      "accuracy": 94.0,
+      "macro_f1": 93.71310049511574,
+      "sens_normal": 86.99186991869918,
+      "sens_supraventricular": 95.3125,
+      "sens_ventricular": 98.65771812080537,
+      "name": "PhaseAttention (U(1))",
+      "params": 5580,
+      "train_time": 1.14
+    },
+    {
+      "accuracy": 97.0,
+      "macro_f1": 96.86687786267028,
+      "sens_normal": 99.1869918699187,
+      "sens_supraventricular": 92.1875,
+      "sens_ventricular": 99.32885906040269,
+      "name": "StandardVector Attention",
+      "params": 7427,
+      "train_time": 1.09
+    },
+    {
+      "accuracy": 93.25,
+      "macro_f1": 92.86654915438623,
+      "sens_normal": 86.1788617886179,
+      "sens_supraventricular": 92.96875,
+      "sens_ventricular": 99.32885906040269,
+      "name": "cosFormer (Qin 2022)",
+      "params": 7427,
+      "train_time": 1.49
+    },
+    {
+      "accuracy": 90.75,
+      "macro_f1": 90.21762660728314,
+      "sens_normal": 93.4959349593496,
+      "sens_supraventricular": 78.90625,
+      "sens_ventricular": 98.65771812080537,
+      "name": "Edge-CNN 1D (Baseline)",
+      "params": 2915,
+      "train_time": 0.71
+    }
+  ]
+}

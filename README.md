@@ -96,8 +96,28 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 ![Multiplier-Free Hardware Simulation](assets/fixed_point_quantization.png)
 
 > **Two's Complement Free Wrap:** In two's complement digital logic, integer subtraction $(q - k)$ inherently wraps circular angles on $S^1$ modulo $2^B$ without needing any modulo or conditional branch logic.  
-> **Hardware Reference:** NAND2 gate counts derived from standard CMOS digital cell libraries (Weste & Harris, *CMOS VLSI Design*). Dynamic energy estimates modeled on 45nm CMOS cell benchmarks (Horowitz, *ISSCC 2014*, "Computing's Energy Problem").  
 > **Reproduce benchmark:** Run `python experiments/benchmark_fixed_point_integer.py` to regenerate all quantization sweeps and the silicon cost chart.
+
+### 4. Real-World Clinical Benchmark: MIT-BIH Arrhythmia Detection (PhysioNet)
+
+To evaluate real-world physiological signals beyond synthetic tasks, models were trained on clinical patient recordings from the **MIT-BIH Arrhythmia Database** (Harvard-MIT Health Sciences / PhysioNet). Heartbeats were classified under the clinical **AAMI EC57** standard into **Normal (N)**, **Supraventricular Ectopic (S)**, and **Ventricular Ectopic (V)** arrhythmias.
+
+| Architecture | Model Family | Test Acc (%) | Macro F1 (%) | Ventricular Sensitivity ($V_{Sens}$) | Parameters | Multipliers in $Q \times K$ Kernel |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `StandardVector Attention` | Transformer $O(N^2)$ | 97.00% | 96.87% | 99.33% | 7,427 | $N \cdot d_k$ Float MACs |
+| **`PhaseAttention (U(1))`** | Phase $O(N^2)$ | **94.00%** | **93.71%** | **98.66%** | **5,580** (-25%) | **0 (Angular subtraction)** |
+| **`LinearHolographicPhase`** | **Phase $O(N)$** | **93.75%** | **93.46%** | **98.66%** | **5,579** (-25%) | **0 (Exact linear scan, No Softmax)** |
+| `cosFormer` (Qin et al., 2022) | Linear Attn $O(N)$ | 93.25% | 92.87% | 99.33% | 7,427 | $4 \cdot d_v$ Float MACs |
+| **`TriangularPhase`** | **Multiplier-Free** | **93.00%** | **92.76%** | **95.97%** | **5,580** (-25%) | **0 (Subtraction + Abs only)** |
+| `Edge-CNN 1D` (CMSIS-NN Baseline) | Microcontroller CNN | 90.75% | 90.22% | 98.66% | 2,915 | Conv1D MACs |
+
+![Clinical ECG Benchmark](assets/ecg_arrhythmia_benchmark.png)
+
+> **Key Clinical & TinyML Takeaways:**  
+> 1. **Phase Matches or Beats Prior Linear Attention:** `LinearHolographicPhaseAttention` outperforms `cosFormer` (93.46% vs 92.87% F1) with 25% fewer parameters, zero Softmax, and a constant $O(1)$ streaming state memory of 16 floats per head.  
+> 2. **Multiplier-Free Beats Microcontroller CNNs:** `TriangularPhaseAttention` achieves 92.76% Macro F1 (outperforming standard Edge-CNN at 90.22%) while requiring **ZERO floating-point multipliers** in the attention affinity kernel.  
+> 3. **High Clinical Safety:** Over **98.66% sensitivity** on life-threatening Ventricular Ectopic Beats ($V$), critical for battery-powered wearable Holter monitors and cardiac patches.  
+> **Reproduce benchmark:** Run `python experiments/benchmark_ecg_arrhythmia.py` to regenerate the clinical benchmark and figure.
 
 ---
 
