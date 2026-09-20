@@ -19,7 +19,7 @@ Standard Transformers project queries and keys into high-dimensional vector spac
 - **Millions of Multiply-Accumulate (MAC) units** burning milliwatts of power, making them unusable on battery-operated microcontrollers (ARM Cortex-M, ESP32, FPGAs).
 
 ### 1. The Monotonic Bottleneck of $\mathbb{R}^1$ vs The $U(1)$ Unit Circle
-- **Real Scalar Attention ($\mathbb{R}^1$, $d=1$):** Dot products $q \cdot k$ are strictly monotonic on the real line. A query $q$ cannot isolate an intermediate key without assigning an even higher score to the extremes ($k_{\max}$ or $k_{\min}$). It collapses to a simple *Soft-Ranker* (56% accuracy on associative retrieval).
+- **Real Scalar Attention ($\mathbb{R}^1$, $d=1$):** Dot products $q \cdot k$ are strictly monotonic on the real line. A query $q$ cannot isolate an intermediate key without assigning an even higher score to the extremes ($k_{\max}$ or $k_{\min}$). It collapses to a simple *Soft-Ranker* (59.5% accuracy on associative retrieval).
 - **Unitary Complex Attention ($U(1)$, $d=1$):** By projecting tokens to phase angles $\theta \in [-\pi, \pi)$ on the compact unit circle, **a single complex dimension achieves 100% associative recall**:
   $$\text{sim}(q, k) = \cos(\theta_q - \theta_k)$$
   - **Constructive Resonance:** $\Delta\theta = 0 \implies \cos(0) = +1.0$ (exact match).
@@ -51,16 +51,18 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 
 ## 📊 Empirical Benchmarks
 
-### 1. Direct Content Addressing ($K=8$ keys, 8 slots, chance = 12.5%)
+### 1. Direct Content Addressing ($K=8$ keys, 6 memory slots, chance = 12.5%)
 
-| Model | Complexity | Heads ($H$) | Params | Val Acc (%) | Val Loss | Multipliers in $Q \times K$ |
+| Model | Complexity | Heads ($H$) | Params | Val Acc (%) | Val Loss | Multipliers in $Q \times K$ Kernel |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `RealScalar_R1` | $O(N^2)$ | 1 | 659 | 56.67% | 0.9308 | Multiplications in $\mathbb{R}^1$ |
-| **`PhaseAttention (U(1))`** | $O(N^2)$ | 1 | **659** | **100.00%** | **0.0003** | **0 (Angular subtraction)** |
-| **`TriangularPhase (Multiplier-Free)`** | $O(N^2)$ | 4 | **1745** | **100.00%** | **0.0008** | **0 (Sub + Abs only)** |
-| **`LUT16_Phase (ROM Table)`** | $O(N^2)$ | 4 | **1745** | **100.00%** | **0.0001** | **0 (16-word LUT)** |
-| **`LinearHolographicPhase`** | **$O(N)$** | 4 | **1744** | **100.00%** | **0.0001** | **0 (Exact linear scan)** |
+| `RealScalar_R1` | $O(N^2)$ | 1 | 659 | 59.50% | 0.8867 | Multiplications in $\mathbb{R}^1$ (Monotonic collapse) |
+| **`PhaseAttention (U(1))`** | $O(N^2)$ | 1 | **659** | **89.00%** | **0.7864** | **0 (Angular subtraction)** |
+| **`TriangularPhase (Multiplier-Free)`** | $O(N^2)$ | 4 | **1745** | **100.00%** | **0.0003** | **0 (Sub + Abs only)** |
+| **`LUT16_Phase (ROM Table)`** | $O(N^2)$ | 4 | **1745** | **100.00%** | **0.0007** | **0 (16-word LUT)** |
+| **`LinearHolographicPhase`** | **$O(N)$** | 4 | **1744** | **100.00%** | **0.0002** | **0 (Exact linear scan, No Softmax)** |
 | `StandardVector (d_k=8)` | $O(N^2)$ | 4 | 2696 | **100.00%** | 0.0001 | Floating-point matrix MACs |
+
+> **Kernel Scope Note:** "Multiplier-Free" refers specifically to the $Q \times K$ attention affinity interaction kernel, eliminating the $O(N^2 \cdot d_k)$ floating-point multiplication bottleneck. Projection matrices $W_q, W_k, W_v$ remain standard linear transformations. Softmax is eliminated exclusively in `LinearHolographicPhaseAttention` via analytical wave interference.
 
 ![PhaseAttention Benchmarks](assets/benchmark_recall.png)
 
@@ -76,6 +78,9 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 
 ![Complexity and Memory Scaling](assets/complexity_scaling.png)
 
+> **Memory Complexity Distinction:**  
+> - **Parallel Training ($O(N)$ time & memory):** The forward pass processes all tokens in parallel using `torch.cumsum`, consuming $O(N \cdot 2 \cdot d_v)$ tensor activation memory.  
+> - **Online Streaming Inference ($O(1)$ time & memory):** For edge deployment and real-time sensor processing, tokens arrive sequentially and are processed via `model.step(x_t, state)`, maintaining a strictly constant memory state $S_t \in \mathbb{R}^{2 \times d_v}$ (only 16 floats per head).  
 > **Reproduce benchmark:** Run `python experiments/benchmark_scaling_latency.py` to regenerate the scaling curves.
 
 ### 3. Multiplier-Free Fixed-Point Silicon Emulation (INT8 / INT16 / INT4)
@@ -91,6 +96,7 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 ![Multiplier-Free Hardware Simulation](assets/fixed_point_quantization.png)
 
 > **Two's Complement Free Wrap:** In two's complement digital logic, integer subtraction $(q - k)$ inherently wraps circular angles on $S^1$ modulo $2^B$ without needing any modulo or conditional branch logic.  
+> **Hardware Reference:** NAND2 gate counts derived from standard CMOS digital cell libraries (Weste & Harris, *CMOS VLSI Design*). Dynamic energy estimates modeled on 45nm CMOS cell benchmarks (Horowitz, *ISSCC 2014*, "Computing's Energy Problem").  
 > **Reproduce benchmark:** Run `python experiments/benchmark_fixed_point_integer.py` to regenerate all quantization sweeps and the silicon cost chart.
 
 ---
@@ -102,7 +108,7 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 pip install -e .
 ```
 
-### Basic Usage in PyTorch
+### Basic Usage in PyTorch (Batch & Streaming)
 ```python
 import torch
 from phase_attention import (
@@ -111,18 +117,19 @@ from phase_attention import (
     TriangularPhaseAttention
 )
 
-# Batch of 4 sequences, length 32, embedding dimension 32
-x = torch.randn(4, 32, 32)
+# 1. Batch Parallel Processing (Training)
+x = torch.randn(4, 32, 32) # (Batch=4, Length=32, d_model=32)
 
-# 1. Standard PhaseAttention (U(1) Cosine)
-attn_u1 = PhaseAttention(d_model=32, num_heads=4, d_v=8)
-out_u1 = attn_u1(x) # (4, 32, 32)
-
-# 2. Linear Holographic Attention O(N) (No Softmax, exact prefix-sum)
 attn_linear = LinearHolographicPhaseAttention(d_model=32, num_heads=4, d_v=8)
-out_linear = attn_linear(x) # (4, 32, 32)
+out_batch = attn_linear(x) # (4, 32, 32) in O(N) parallel prefix-sum
 
-# 3. 100% Multiplier-Free Attention (Hardware-friendly Sub + Abs)
+# 2. Strict O(1) Memory Online Streaming (Microcontrollers / Wearables)
+state = attn_linear.init_state(batch_size=1) # S_0 in R^(1 x 4 x 2 x 8), only 64 floats!
+for t in range(32):
+    x_t = x[:1, t, :] # Single incoming token/sample (1, 32)
+    out_t, state = attn_linear.step(x_t, state) # O(1) time and memory per step!
+
+# 3. 100% Multiplier-Free Kernel (Subtraction + Absolute Value only)
 attn_tri = TriangularPhaseAttention(d_model=32, num_heads=4, d_v=8)
 out_tri = attn_tri(x) # (4, 32, 32)
 ```

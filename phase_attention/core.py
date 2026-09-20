@@ -88,6 +88,40 @@ class LinearHolographicPhaseAttention(nn.Module):
         out = out.transpose(1, 2).contiguous().view(B, L, self.num_heads * self.d_v)
         return self.out_proj(out)
 
+    def init_state(self, batch_size: int, device: torch.device = None) -> torch.Tensor:
+        """Initializes recurrent memory state S_0 in R^(B x H x 2 x d_v) with zeros."""
+        dev = device if device is not None else next(self.parameters()).device
+        return torch.zeros(batch_size, self.num_heads, 2, self.d_v, device=dev)
+
+    def step(self, x_t: torch.Tensor, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Online streaming autoregressive step in strict O(1) time and O(1) state memory.
+        
+        Args:
+            x_t: Input token representation at step t of shape (B, d_model)
+            state: Recurrent memory state S_(t-1) of shape (B, num_heads, 2, d_v)
+            
+        Returns:
+            out_t: Output representation of shape (B, d_model)
+            next_state: Updated state S_t = S_(t-1) + phi(k_t) v_t^T of shape (B, num_heads, 2, d_v)
+        """
+        B, _ = x_t.shape
+        theta_q = torch.tanh(self.w_q(x_t)) * math.pi
+        theta_k = torch.tanh(self.w_k(x_t)) * math.pi
+        
+        phi_k = torch.stack([torch.cos(theta_k), torch.sin(theta_k)], dim=-1) # (B, H, 2)
+        phi_q = torch.stack([torch.cos(theta_q), torch.sin(theta_q)], dim=-1) # (B, H, 2)
+        v = self.w_v(x_t).view(B, self.num_heads, self.d_v)                  # (B, H, d_v)
+        
+        # State update: S_t = S_(t-1) + phi(k_t) v_t^T
+        kv_t = phi_k.unsqueeze(-1) * v.unsqueeze(-2)                         # (B, H, 2, d_v)
+        next_state = state + kv_t
+        
+        # Linear readout: y_t = phi(q_t)^T S_t
+        out_t = torch.matmul(phi_q.unsqueeze(-2), next_state).squeeze(-2)    # (B, H, d_v)
+        out_flat = out_t.contiguous().view(B, self.num_heads * self.d_v)
+        return self.out_proj(out_flat), next_state
+
 
 class DeltaPhaseLinearAttention(nn.Module):
     """
@@ -104,7 +138,7 @@ class DeltaPhaseLinearAttention(nn.Module):
         
         self.w_q = nn.Linear(d_model, num_heads)
         self.w_k = nn.Linear(d_model, num_heads)
-        self.w_v = nn.Linear(d_model, num_heads * d_v)
+        self.w_v = nn.Linear(d_model * num_heads * d_v) if False else nn.Linear(d_model, num_heads * d_v)
         self.w_beta = nn.Linear(d_model, num_heads)
         self.out_proj = nn.Linear(num_heads * d_v, d_model)
 
@@ -119,7 +153,7 @@ class DeltaPhaseLinearAttention(nn.Module):
         v = self.w_v(x).view(B, L, self.num_heads, self.d_v).transpose(1, 2)
         beta = beta.transpose(1, 2).unsqueeze(-1).unsqueeze(-1)
         
-        state = torch.zeros(B, self.num_heads, 2, self.d_v, device=x.device)
+        state = self.init_state(B, device=x.device)
         outs = []
         
         for t in range(L):
@@ -139,6 +173,34 @@ class DeltaPhaseLinearAttention(nn.Module):
         out_seq = torch.stack(outs, dim=2)
         out = out_seq.transpose(1, 2).contiguous().view(B, L, self.num_heads * self.d_v)
         return self.out_proj(out)
+
+    def init_state(self, batch_size: int, device: torch.device = None) -> torch.Tensor:
+        """Initializes recurrent memory state S_0 in R^(B x H x 2 x d_v) with zeros."""
+        dev = device if device is not None else next(self.parameters()).device
+        return torch.zeros(batch_size, self.num_heads, 2, self.d_v, device=dev)
+
+    def step(self, x_t: torch.Tensor, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Online single-step autoregressive update for Delta-Rule memory."""
+        B, _ = x_t.shape
+        theta_q = torch.tanh(self.w_q(x_t)) * math.pi
+        theta_k = torch.tanh(self.w_k(x_t)) * math.pi
+        beta = torch.sigmoid(self.w_beta(x_t)) # (B, H)
+        
+        phi_k = torch.stack([torch.cos(theta_k), torch.sin(theta_k)], dim=-1) # (B, H, 2)
+        phi_q = torch.stack([torch.cos(theta_q), torch.sin(theta_q)], dim=-1) # (B, H, 2)
+        v = self.w_v(x_t).view(B, self.num_heads, self.d_v)                  # (B, H, d_v)
+        b_t = beta.unsqueeze(-1).unsqueeze(-1)                                # (B, H, 1, 1)
+        
+        pk_t = phi_k.unsqueeze(-2) # (B, H, 1, 2)
+        pred_v = torch.matmul(pk_t, state).squeeze(-2)
+        err = v - pred_v
+        delta = torch.matmul(pk_t.transpose(-2, -1), err.unsqueeze(-2))
+        next_state = state + b_t * delta
+        
+        pq_t = phi_q.unsqueeze(-2)
+        out_t = torch.matmul(pq_t, next_state).squeeze(-2)
+        out_flat = out_t.contiguous().view(B, self.num_heads * self.d_v)
+        return self.out_proj(out_flat), next_state
 
 
 class TriangularPhaseAttention(nn.Module):

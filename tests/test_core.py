@@ -59,3 +59,48 @@ def test_causal_masking():
         
     # In causal attention, tokens 0 to L-2 must have identical outputs
     assert torch.allclose(out1[:, :-1, :], out2[:, :-1, :], atol=1e-5)
+
+
+def test_linear_holographic_step_matches_forward():
+    B, L, d_model = 2, 10, 16
+    num_heads, d_v = 4, 8
+    x = torch.randn(B, L, d_model)
+    
+    model = LinearHolographicPhaseAttention(d_model=d_model, num_heads=num_heads, d_v=d_v)
+    model.eval()
+    
+    with torch.no_grad():
+        out_parallel = model(x)
+        
+        # Step-by-step O(1) recurrent streaming
+        state = model.init_state(B, device=x.device)
+        step_outs = []
+        for t in range(L):
+            out_t, state = model.step(x[:, t, :], state)
+            step_outs.append(out_t)
+            
+        out_streaming = torch.stack(step_outs, dim=1)
+        
+    assert torch.allclose(out_parallel, out_streaming, atol=1e-5)
+
+
+def test_delta_phase_step_matches_forward():
+    B, L, d_model = 2, 8, 16
+    num_heads, d_v = 4, 8
+    x = torch.randn(B, L, d_model)
+    
+    model = DeltaPhaseLinearAttention(d_model=d_model, num_heads=num_heads, d_v=d_v)
+    model.eval()
+    
+    with torch.no_grad():
+        out_parallel = model(x)
+        
+        state = model.init_state(B, device=x.device)
+        step_outs = []
+        for t in range(L):
+            out_t, state = model.step(x[:, t, :], state)
+            step_outs.append(out_t)
+            
+        out_streaming = torch.stack(step_outs, dim=1)
+        
+    assert torch.allclose(out_parallel, out_streaming, atol=1e-5)

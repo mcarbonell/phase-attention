@@ -475,9 +475,12 @@ def main():
     m_h4 = PhaseAttentionModel(num_keys=k64_keys, num_values=k64_vals, d_model=d_model, num_heads=4, d_v=d_v, num_classes=k64_vals)
     res_h4_64 = train_and_eval("PhaseAttention_H4_K64", m_h4, xk_tr64, xv_tr64, y_tr64, xk_va64, xv_va64, y_va64, epochs=args.epochs, batch_size=args.batch_size)
 
-    # Get H=1 on K=8 for comparison
+    # Apples-to-apples comparison of PhaseAttention on K=8: H=1 vs H=4
     h1_k8_acc = next(r["final_val_acc"] for r in results_k8 if r["name"] == "PhaseAttention_U1 (H=1)")
-    h4_k8_acc = 100.0 # From Part 1 Triangular/LUT16/Linear/Vector
+    print("  [H=4 (T^4 torus)] on K=8:")
+    m_h4_k8 = PhaseAttentionModel(num_keys=num_keys, num_values=num_values, d_model=d_model, num_heads=4, d_v=d_v, num_classes=num_values)
+    res_h4_k8 = train_and_eval("PhaseAttention_H4_K8", m_h4_k8, xk_tr, xv_tr, y_tr, xk_va, xv_va, y_va, epochs=args.epochs, batch_size=args.batch_size)
+    h4_k8_acc = res_h4_k8["final_val_acc"]
 
     results_toroid = {
         "H1_K8": h1_k8_acc,
