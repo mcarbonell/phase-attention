@@ -51,6 +51,8 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 
 ## 📊 Empirical Benchmarks
 
+Complete experimental methodologies, theoretical derivations, hardware synthesis models, and raw datasets are documented in the [**Technical Documentation Suite (`docs/`)**](docs/README.md).
+
 ### 1. Direct Content Addressing ($K=8$ keys, 6 memory slots, chance = 12.5%)
 
 | Model | Complexity | Heads ($H$) | Params | Val Acc (%) | Val Loss | Multipliers in $Q \times K$ Kernel |
@@ -66,6 +68,7 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 
 ![PhaseAttention Benchmarks](assets/benchmark_recall.png)
 
+> 📄 **Detailed Technical Report:** [`docs/01_associative_recall_torus.md`](docs/01_associative_recall_torus.md)  
 > **Reproduce benchmark:** Run `python experiments/benchmark_recall.py` to regenerate all metrics and the figure above.
 
 ### 2. Computational Complexity & Context Scaling ($N = 128 \dots 8192$ tokens)
@@ -81,6 +84,7 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 > **Memory Complexity Distinction:**  
 > - **Parallel Training ($O(N)$ time & memory):** The forward pass processes all tokens in parallel using `torch.cumsum`, consuming $O(N \cdot 2 \cdot d_v)$ tensor activation memory.  
 > - **Online Streaming Inference ($O(1)$ time & memory):** For edge deployment and real-time sensor processing, tokens arrive sequentially and are processed via `model.step(x_t, state)`, maintaining a strictly constant memory state $S_t \in \mathbb{R}^{2 \times d_v}$ (only 16 floats per head).  
+> 📄 **Detailed Technical Report:** [`docs/02_latency_memory_scaling.md`](docs/02_latency_memory_scaling.md)  
 > **Reproduce benchmark:** Run `python experiments/benchmark_scaling_latency.py` to regenerate the scaling curves.
 
 ### 3. Multiplier-Free Fixed-Point Silicon Emulation (INT8 / INT16 / INT4)
@@ -96,6 +100,7 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 ![Multiplier-Free Hardware Simulation](assets/fixed_point_quantization.png)
 
 > **Two's Complement Free Wrap:** In two's complement digital logic, integer subtraction $(q - k)$ inherently wraps circular angles on $S^1$ modulo $2^B$ without needing any modulo or conditional branch logic.  
+> 📄 **Detailed Technical Report:** [`docs/03_fixed_point_silicon_emulation.md`](docs/03_fixed_point_silicon_emulation.md)  
 > **Reproduce benchmark:** Run `python experiments/benchmark_fixed_point_integer.py` to regenerate all quantization sweeps and the silicon cost chart.
 
 ### 4. Real-World Clinical Benchmark: MIT-BIH Arrhythmia Detection (PhysioNet)
@@ -117,6 +122,7 @@ To evaluate real-world physiological signals beyond synthetic tasks, models were
 > 1. **Phase Matches or Beats Prior Linear Attention:** `LinearHolographicPhaseAttention` outperforms `cosFormer` (93.46% vs 92.87% F1) with 25% fewer parameters, zero Softmax, and a constant $O(1)$ streaming state memory of 16 floats per head.  
 > 2. **Multiplier-Free Beats Microcontroller CNNs:** `TriangularPhaseAttention` achieves 92.76% Macro F1 (outperforming standard Edge-CNN at 90.22%) while requiring **ZERO floating-point multipliers** in the attention affinity kernel.  
 > 3. **High Clinical Safety:** Over **98.66% sensitivity** on life-threatening Ventricular Ectopic Beats ($V$), critical for battery-powered wearable Holter monitors and cardiac patches.  
+> 📄 **Detailed Technical Report:** [`docs/04_ecg_arrhythmia_detection.md`](docs/04_ecg_arrhythmia_detection.md)  
 > **Reproduce benchmark:** Run `python experiments/benchmark_ecg_arrhythmia.py` to regenerate the clinical benchmark and figure.
 
 ### 5. Embedded Vision Benchmark: Micro-ViT on Fashion-MNIST
@@ -141,6 +147,7 @@ To evaluate PhaseAttention on 2D spatial vision tasks for resource-constrained v
 > 1. **Parity with SOTA Linear Vision Attention:** `LinearHolographicPhaseAttention` achieves 80.67% accuracy, matching or exceeding `cosFormer` (80.33%) while reducing parameter footprint by 16.8% and completely eliminating Softmax.  
 > 2. **Multiplier-Free Attention Outperforms 2D CNNs:** `TriangularPhaseAttention` achieves 80.33% accuracy, outperforming standard microcontroller 2D CNNs (78.07%) by +2.26% without requiring any multiplications in the attention kernel.  
 > 3. **Microcontroller Feasibility:** At ~9.1k parameters and 49 tokens, the entire model footprint fits into ~36 KB of flash memory and executes with <4 KB peak activation SRAM, ideal for sub-$5 microcontrollers.  
+> 📄 **Detailed Technical Report:** [`docs/05_micro_vit_embedded_vision.md`](docs/05_micro_vit_embedded_vision.md)  
 > **Reproduce benchmark:** Run `python experiments/benchmark_micro_vit.py` to regenerate the vision benchmark and figure.
 
 ---
