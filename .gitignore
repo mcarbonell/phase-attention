@@ -49,6 +49,8 @@ Thumbs.db
 *.pth
 *.onnx
 experiments_output/
+data/
+*.txt
 
 
 # Private documents

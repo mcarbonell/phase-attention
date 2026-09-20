@@ -150,6 +150,28 @@ To evaluate PhaseAttention on 2D spatial vision tasks for resource-constrained v
 > 📄 **Detailed Technical Report:** [`docs/05_micro_vit_embedded_vision.md`](docs/05_micro_vit_embedded_vision.md)  
 > **Reproduce benchmark:** Run `python experiments/benchmark_micro_vit.py` to regenerate the vision benchmark and figure.
 
+### 6. Causal Language Modeling: Autoregressive TinyShakespeare
+
+To evaluate causal sequence generation on natural language, models were trained on character-level autoregressive modeling over the **TinyShakespeare** corpus (1.1 MB, 65 distinct characters, context length $L=64$, $d_{model}=64$, 4 heads, $d_v=16$):
+
+| Architecture | Model Family | Val Loss | Perplexity (PPL) | Bits-Per-Char (BPC) | Parameters | $Q \times K$ Multipliers | Training Time (s) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `Edge-GRU (Recurrent)` | Microcontroller RNN | 1.851 | 6.36 | 2.67 | 33,408 | Recurrent MACs | 19.7s |
+| `StandardCausal Attention` | Transformer $O(N^2)$ | 2.013 | 7.49 | 2.90 | 50,112 | $N \cdot d_k$ Float MACs | 9.1s |
+| `cosFormer (Causal)` | Linear Attn $O(N)$ | 2.266 | 9.64 | 3.27 | 50,112 | $4 \cdot d_v$ Float MACs | 26.1s |
+| **`PhaseAttention (U(1))`** | Phase $O(N^2)$ | **2.285** | **9.82** | **3.30** | **42,313** (-15.6%) | **0 (Angular Subtraction)** | 10.0s |
+| **`TriangularPhase`** | **Multiplier-Free** | **2.321** | **10.19** | **3.35** | **42,313** (-15.6%) | **0 (Sub + Abs Only)** | 10.1s |
+| **`LinearHolographicPhase`** | **Phase $O(N)$** | **2.378** | **10.79** | **3.43** | **42,312** (-15.6%) | **0 (Linear Scan, No Softmax)** | **8.9s** |
+
+![TinyShakespeare Causal LM Benchmark](assets/tinyshakespeare_benchmark.png)
+
+> **Key Autoregressive LM Takeaways:**  
+> 1. **Zero KV-Cache Memory Explosion:** `LinearHolographicPhaseAttention` operates with a strictly fixed 512-byte recurrent state ($S_t \in \mathbb{R}^{4 \times 2 \times 16}$), eliminating the linear memory growth that exhausts microcontroller SRAM during open-ended text generation.  
+> 2. **3x Faster Training than cosFormer:** Causal linear phase attention trains nearly 3x faster than causal `cosFormer` (8.9s vs 26.1s) by eliminating cosine buffer modulations and per-token normalization dividers.  
+> 3. **Multiplier-Free Text Generation:** `TriangularPhaseAttention` achieves 10.19 PPL with zero float multiplications in the attention matrix.  
+> 📄 **Detailed Technical Report:** [`docs/06_tinyshakespeare_causal_lm.md`](docs/06_tinyshakespeare_causal_lm.md)  
+> **Reproduce benchmark:** Run `python experiments/benchmark_tinyshakespeare_lm.py` to regenerate the language modeling benchmark and figure.
+
 ---
 
 ## 🚀 Quickstart

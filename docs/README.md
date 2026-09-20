@@ -13,20 +13,22 @@ Welcome to the technical documentation suite for **PhaseAttention**. This direct
 | **03** | [**Fixed-Point Silicon & FPGA Emulation**](03_fixed_point_silicon_emulation.md) | Digital Hardware & VLSI (INT4/8/16) | Free two's complement modulo wrap on $S^1$. Complete INT8 core requires **~95 NAND2 gates** and **0.04 pJ/op** (47.4x smaller, 92.5x less energy than FP32 MAC). | ASICs / Low-cost FPGAs |
 | **04** | [**Clinical ECG Arrhythmia Detection**](04_ecg_arrhythmia_detection.md) | Biomedical Wearables (PhysioNet MIT-BIH) | **93.46% Macro F1** and **98.66% Ventricular sensitivity** under AAMI EC57 standard. Beats SOTA `cosFormer` with 25% fewer parameters and zero Softmax. | Medical Holters / Smart Patches |
 | **05** | [**Micro-ViT Embedded Computer Vision**](05_micro_vit_embedded_vision.md) | Embedded Vision (Fashion-MNIST) | Micro-ViT (<10k params, 49 tokens) achieves **80.67% Top-1 Acc**, outperforming modern linear attention and microcontroller 2D CNNs with 16.8% parameter reduction. | ESP32-CAM / Cortex-M55 |
+| **06** | [**Causal Language Modeling (TinyShakespeare)**](06_tinyshakespeare_causal_lm.md) | Autoregressive NLP (TinyShakespeare) | Causal character LM ($L=64$, 42.3k params) achieves **10.79 PPL (3.43 BPC)** in 8.9s (3x faster than cosFormer), with **strictly $O(1)$ streaming state memory** and no KV-Cache explosion. | Embedded Dialog / Smart Edge |
 
 ---
 
 ## 🔬 Cross-Experiment Performance Matrix
 
-| Metric / Characteristic | Standard Vector Attention | SOTA Linear Attention (`cosFormer`) | Edge-CNN (1D / 2D) | **PhaseAttention (Linear Holographic)** | **PhaseAttention (Triangular)** |
+| Metric / Characteristic | Standard Vector Attention | SOTA Linear Attention (`cosFormer`) | Edge Baseline (CNN / GRU) | **PhaseAttention (Linear Holographic)** | **PhaseAttention (Triangular)** |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Time Complexity** | $O(N^2)$ | $O(N)$ | $O(N \cdot K)$ | **$O(N)$** | $O(N^2)$ |
-| **Streaming State Memory** | $O(N)$ (KV-Cache) | $O(1)$ | $O(K)$ (Buffer) | **$O(1)$ (16 floats/head)** | $O(N)$ |
+| **Time Complexity** | $O(N^2)$ | $O(N)$ | $O(N \cdot K)$ / $O(N)$ | **$O(N)$** | $O(N^2)$ |
+| **Streaming State Memory** | $O(N)$ (KV-Cache) | $O(1)$ | $O(K)$ / $O(d)$ | **$O(1)$ (16-32 floats/head)** | $O(N)$ |
 | **Softmax Exponentiation** | Required | Replaced with division | Not required | **Completely Eliminated** | Required |
-| **$Q \times K$ Multipliers** | $N \cdot d_k$ Float MACs | $4 \cdot d_v$ Float MACs | Kernel MACs | **0 (Prefix Scan)** | **0 (Sub + Abs Only)** |
-| **MIT-BIH Arrhythmia F1** | 96.87% | 92.87% | 90.22% | **93.46%** | **92.76%** |
-| **Ventricular Arrhythmia Sens.**| 99.33% | 99.33% | 98.66% | **98.66%** | **95.97%** |
-| **Micro-ViT Vision Top-1 Acc** | 81.07% | 80.33% | 78.07% | **80.67%** | **80.33%** |
+| **$Q \times K$ Multipliers** | $N \cdot d_k$ Float MACs | $4 \cdot d_v$ Float MACs | Kernel / Recurrent MACs | **0 (Prefix Scan)** | **0 (Sub + Abs Only)** |
+| **MIT-BIH Arrhythmia F1** | 96.87% | 92.87% | 90.22% (CNN1D) | **93.46%** | **92.76%** |
+| **Ventricular Arrhythmia Sens.**| 99.33% | 99.33% | 98.66% (CNN1D) | **98.66%** | **95.97%** |
+| **Micro-ViT Vision Top-1 Acc** | 81.07% | 80.33% | 78.07% (CNN2D) | **80.67%** | **80.33%** |
+| **TinyShakespeare LM Perplexity**| 7.49 | 9.64 | 6.36 (GRU) | **10.79 (Fastest: 8.9s)** | **10.19 (No Mult)** |
 | **Attention Projection Overhead**| Large ($d \times (H \cdot d_k)$) | Large ($d \times (H \cdot d_v)$) | N/A | **Minimal ($d \times H$)** | **Minimal ($d \times H$)** |
 | **Silicon Gate Estimate** | ~4,500 NAND2 | ~3,500 NAND2 | ~1,200 NAND2 | **~350 NAND2** | **~95 NAND2** |
 
@@ -51,6 +53,9 @@ python experiments/benchmark_ecg_arrhythmia.py
 
 # 5. Micro-ViT Embedded Vision (Fashion-MNIST)
 python experiments/benchmark_micro_vit.py
+
+# 6. Causal Language Modeling (TinyShakespeare)
+python experiments/benchmark_tinyshakespeare_lm.py
 ```
 
 All raw numerical results are recorded as JSON files in `results/`, and all publication figures are stored at 300 DPI in `assets/`.
