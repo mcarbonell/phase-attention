@@ -48,5 +48,4 @@ Thumbs.db
 *.pt
 *.pth
 *.onnx
-results/
 experiments_output/

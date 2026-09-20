@@ -62,6 +62,10 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 | **`LinearHolographicPhase`** | **$O(N)$** | 4 | **1744** | **100.00%** | **0.0001** | **0 (Exact linear scan)** |
 | `StandardVector (d_k=8)` | $O(N^2)$ | 4 | 2696 | **100.00%** | 0.0001 | Floating-point matrix MACs |
 
+![PhaseAttention Benchmarks](assets/benchmark_recall.png)
+
+> **Reproduce benchmark:** Run `python experiments/benchmark_recall.py` to regenerate all metrics and the figure above.
+
 ---
 
 ## 🚀 Quickstart
