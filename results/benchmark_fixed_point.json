@@ -1,0 +1,42 @@
+{
+  "quantization_k8": {
+    "32": 100.0,
+    "16": 100.0,
+    "8": 100.0,
+    "6": 100.0,
+    "4": 100.0,
+    "2": 84.83,
+    "1": 60.0
+  },
+  "quantization_k16": {
+    "32": 99.85714554786682,
+    "16": 99.86,
+    "8": 99.71,
+    "6": 98.71,
+    "4": 91.29,
+    "2": 45.57,
+    "1": 30.29
+  },
+  "hardware_cost_estimates": {
+    "FP32_Multiplier": {
+      "gates_nand2": 4500,
+      "energy_pj": 3.7
+    },
+    "INT16_Multiplier": {
+      "gates_nand2": 1800,
+      "energy_pj": 1.2
+    },
+    "INT8_Multiplier": {
+      "gates_nand2": 750,
+      "energy_pj": 0.45
+    },
+    "PhaseAttention_INT8_Core": {
+      "gates_nand2": 95,
+      "energy_pj": 0.04
+    },
+    "PhaseAttention_INT4_Core": {
+      "gates_nand2": 42,
+      "energy_pj": 0.015
+    }
+  }
+}

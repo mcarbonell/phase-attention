@@ -78,6 +78,21 @@ While 1 circle ($H=1$) cleanly stores up to 16 discrete keys ($22.5^\circ$ separ
 
 > **Reproduce benchmark:** Run `python experiments/benchmark_scaling_latency.py` to regenerate the scaling curves.
 
+### 3. Multiplier-Free Fixed-Point Silicon Emulation (INT8 / INT16 / INT4)
+
+| Precision Format | Bit-Width ($B$) | Val Acc ($K=8$) | Val Acc ($K=16$) | NAND2 Logic Gates | Dynamic Energy (pJ / op) | Silicon Savings |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **FP32 Multiplier (IEEE-754)** | 32-bit float | 100.00% | 99.86% | ~4,500 gates | 3.70 pJ | Baseline |
+| **INT16 Multiplier (DSP Block)** | 16-bit int | 100.00% | 99.86% | ~1,800 gates | 1.20 pJ | 2.5x area, 3.1x energy |
+| **INT8 MAC Unit (Standard)** | 8-bit int | 100.00% | 99.71% | ~750 gates | 0.45 pJ | 6.0x area, 8.2x energy |
+| **PhaseAttention INT8 Core** | **8-bit int** | **100.00%** | **99.71%** | **~95 gates** | **0.04 pJ** | **47.4x smaller area, 92.5x less energy** |
+| **PhaseAttention INT4 Core** | **4-bit int** | **100.00%** | **91.29%** | **~42 gates** | **0.015 pJ** | **107.1x smaller area, 246.7x less energy** |
+
+![Multiplier-Free Hardware Simulation](assets/fixed_point_quantization.png)
+
+> **Two's Complement Free Wrap:** In two's complement digital logic, integer subtraction $(q - k)$ inherently wraps circular angles on $S^1$ modulo $2^B$ without needing any modulo or conditional branch logic.  
+> **Reproduce benchmark:** Run `python experiments/benchmark_fixed_point_integer.py` to regenerate all quantization sweeps and the silicon cost chart.
+
 ---
 
 ## 🚀 Quickstart
